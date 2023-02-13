@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "redshift-project"
+version = "0.1.0"
+description = "A Project to create a DataWarehouse, using Amazon Redshift"
+authors = ["Hazem Khairy <hazem.hassan.kh@gmail.com>"]
+readme = "README.md"
+packages = [{include = "redshift_project", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+psycopg2-binary = "^2.9.6"
+
+
+[tool.poetry.group.dev.dependencies]
+boto3 = "^1.26.141"
+boto3-stubs = {version = "1.26.141", extras = ["iam", "redshift", "redshift-data", "rolesanywhere", "s3"]}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
