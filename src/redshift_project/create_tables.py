@@ -1,6 +1,6 @@
 import configparser
 import psycopg2
-from redshift_project.create_tables import create_table_queries, drop_table_queries
+from redshift_project.sql_queries import create_table_queries, drop_table_queries
 
 
 def drop_tables(cur, conn):
