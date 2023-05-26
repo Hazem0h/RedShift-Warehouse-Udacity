@@ -24,6 +24,7 @@ artist_table_drop = f"DROP TABLE IF EXISTS {TABLE_NAME_ARTIST}"
 time_table_drop = f"DROP TABLE IF EXISTS {TABLE_NAME_TIME}"
 
 # CREATE TABLES
+# ts is in milliseconds
 
 staging_events_table_create= f"""
     CREATE TABLE IF NOT EXISTS {STAGING_TABLE_NAME_EVENT}(
@@ -54,19 +55,16 @@ staging_events_table_create= f"""
 
 staging_songs_table_create = f"""
     CREATE TABLE IF NOT EXISTS {STAGING_TABLE_NAME_SONG}(
-        -- song data
-        song_id             VARCHAR(50)     PRIMARY KEY,
+        song_id             VARCHAR(MAX)     PRIMARY KEY,
         num_songs           INT,
-        title               VARCHAR(50),
-        duration            REAL,
+        title               VARCHAR(MAX),
+        artist_name         VARCHAR(MAX),
+        artist_latitude     REAL,
         year                INT,
-
-        -- artist data
-        artist_id           VARCHAR(50),
-        artist_latitude     VARCHAR(50), 
-        artist_longitude    VARCHAR(50), 
-        artist_location     VARCHAR(50), 
-        artist_name         VARCHAR(50)
+        duration            REAL,
+        artist_id           VARCHAR(MAX),
+        artist_longitude    REAL, 
+        artist_location     VARCHAR(MAX)
     );
 """
 
@@ -75,12 +73,12 @@ songplay_table_create = f"""
         songplay_id         INT             PRIMARY KEY,
         start_time          TIMESTAMP,
         user_id             INT,
-        level               VARCHAR(50),
-        song_id             VARCHAR(50)     DISTKEY,
-        artist_id           VARCHAR(50),
+        level               VARCHAR(MAX),
+        song_id             VARCHAR(MAX)     DISTKEY,
+        artist_id           VARCHAR(MAX),
         session_id          INT,
-        location            VARCHAR(50),
-        user_agent          VARCHAR(50),
+        location            VARCHAR(MAX),
+        user_agent          VARCHAR(MAX),
 
         FOREIGN KEY (start_time) REFERENCES {TABLE_NAME_TIME}(start_time),
         FOREIGN KEY (user_id) REFERENCES {TABLE_NAME_USER}(user_id),
@@ -93,19 +91,19 @@ songplay_table_create = f"""
 user_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_USER}(
         user_id             INT             PRIMARY KEY,
-        first_name          VARCHAR(50),
-        last_name           VARCHAR(50),
-        gender              VARCHAR(1),
-        level               VARCHAR(50)
+        first_name          VARCHAR(MAX),
+        last_name           VARCHAR(MAX),
+        gender              VARCHAR(MAX),
+        level               VARCHAR(MAX)
     )
     DISTSTYLE AUTO;
 """
 
 song_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_SONG}(
-        song_id             VARCHAR(50)     PRIMARY KEY     DISTKEY,
-        title               VARCHAR(50),
-        artist_id           VARCHAR(50),
+        song_id             VARCHAR(MAX)     PRIMARY KEY     DISTKEY,
+        title               VARCHAR(MAX),
+        artist_id           VARCHAR(MAX),
         year                INT,
         duration            REAL,
 
@@ -115,11 +113,11 @@ song_table_create = f"""
 
 artist_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_ARTIST}(
-        artist_id           VARCHAR(50)     PRIMARY KEY,
-        name                VARCHAR(50),
-        location            VARCHAR(50),
-        latitude            VARCHAR(50),
-        longitude           VARCHAR(50)
+        artist_id           VARCHAR(MAX)     PRIMARY KEY,
+        name                VARCHAR(MAX),
+        location            VARCHAR(MAX),
+        latitude            VARCHAR(MAX),
+        longitude           VARCHAR(MAX)
     )
     DISTSTYLE AUTO;
 """
