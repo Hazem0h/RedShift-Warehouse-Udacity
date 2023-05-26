@@ -153,12 +153,15 @@ staging_events_copy = f"""
     COPY {STAGING_TABLE_NAME_EVENT} FROM {config["S3"]["LOG_DATA"]}
     CREDENTIALS 'aws_iam_role={config['IAM_ROLE']['ARN']}'
     REGION 'us-west-2'
-    JSON ;
+    FORMAT AS JSON {config["S3"]["LOG_JSONPATH"]}
+    TIMEFORMAT AS 'epochmillisecs';
 """
 
 staging_songs_copy = f"""
     COPY {STAGING_TABLE_NAME_SONG} FROM {config["S3"]["SONG_DATA"]}
-    CREDENTIALS 'aws_iam_role={config['IAM_ROLE']['ARN']}';
+    CREDENTIALS 'aws_iam_role={config['IAM_ROLE']['ARN']}'
+    REGION 'us-west-2'
+    FORMAT AS JSON 'auto';
 """
 
 # FINAL TABLES
