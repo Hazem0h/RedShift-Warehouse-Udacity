@@ -164,20 +164,66 @@ staging_songs_copy = f"""
 
 # FINAL TABLES
 
-songplay_table_insert = ("""
-""")
+songplay_table_insert = f"""
+    INSERT INTO {TABLE_NAME_SONGPLAY} (start_time, user_id, 
+                                        level, song_id, artist_id, session_id, location, user_agent)
+    SELECT 
+        logs.ts, 
+        logs.userId, 
+        logs.level, 
+        songs.song_id, 
+        songs.artist_id, 
+        logs.sessionId, 
+        logs.location, 
+        logs.userAgent
+    FROM {STAGING_TABLE_NAME_EVENT}     AS      logs
+    JOIN {STAGING_TABLE_NAME_SONG}      AS      songs
+    ON logs.song = songs.title
+    WHERE logs.page = 'NextSong';
+"""
 
-user_table_insert = ("""
-""")
+user_table_insert = f"""
+    INSERT INTO {TABLE_NAME_USER} (user_id, first_name, last_name, gender, level)
+    SELECT userId, firstName, lastName, gender, level
+    FROM(
+        SELECT 
+            LAST(userId)       AS      userId, 
+            LAST(firstName)    As      firstName,
+            LAST(lastName)     As      lastName, 
+            LAST(gender)       As      gender,
+            LAST(level)        As      level,
+            LAST(ts)           AS      ts
+        FROM {STAGING_TABLE_NAME_EVENT}
+        GROUPBY user_id
+        ORDERBY ts ASC)
+"""
 
-song_table_insert = ("""
-""")
+song_table_insert = f"""
+    INSERT INTO {TABLE_NAME_SONG} (song_id, title, artist_id, year, duration)
+    SELECT DISTINCT(song_id), title, artist_id, year, duration
+    FROM {STAGING_TABLE_NAME_SONG};
+"""
 
-artist_table_insert = ("""
-""")
+artist_table_insert = f"""
+    INSERT INTO {TABLE_NAME_ARTIST} (artist_id, name, location, latitude, longitude)
+    SELECT DISTINCT(artist_id), artist_name, artist_location, artist_latitude, artist_longitude
+    FROM {STAGING_TABLE_NAME_SONG};
+"""
 
-time_table_insert = ("""
-""")
+time_table_insert = f"""
+    INSERT INTO {TABLE_NAME_TIME} (start_time, hour, day, week, month, year, weekday)
+    SELECT 
+        DISTINCT(ts), 
+        EXTRACT(hour FROM ts), 
+        EXTRACT(day FROM ts), 
+        EXTRACT(week FROM ts), 
+        EXTRACT(month FROM ts), 
+        EXTRACT(year FROM ts), 
+        EXTRACT(weekday FROM ts), 
+        EXTRACT(year FROM ts), 
+        EXTRACT(weekday FROM ts)
+    FROM {STAGING_TABLE_NAME_EVENT};
+"""
 
 # QUERY LISTS
 
