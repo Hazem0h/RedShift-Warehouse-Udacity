@@ -27,34 +27,24 @@ time_table_drop = f"DROP TABLE IF EXISTS {TABLE_NAME_TIME}"
 
 staging_events_table_create= f"""
     CREATE TABLE IF NOT EXISTS {STAGING_TABLE_NAME_EVENT}(
-        -- event ID
-        eventId             INT             PRIMARY KEY     IDENTITY(0,1),
-
-        -- user data
-        userId              INT,
-        firstName           VARCHAR(50),
-        lastName            VARCHAR(50),
-        gender              VARCHAR(1),
-        level               VARCHAR(50),
-
-        -- session data
-        location            VARCHAR(50),
-        userAgent           VARCHAR(50),
-        auth                VARCHAR(50),
-        sessionId           INT,
-
-        -- request info
-        ts                  TIMESTAMP       SORTKEY, -- because we want the latest timestamp to update the user level.
+        artist              VARCHAR(MAX),
+        auth                VARCHAR(MAX),
+        firstName           VARCHAR(MAX),
+        gender              VARCHAR(MAX),
         itemInSession       INT,
-        method              VARCHAR(50),
-        status              INT,
-        page                VARCHAR(50),
-
-        -- song data
-        song                VARCHAR(50),
-        artist              VARCHAR(50),
+        lastName            VARCHAR(MAX),
         length              REAL,
-        registration        TIMESTAMP
+        level               VARCHAR(MAX),
+        location            VARCHAR(MAX),
+        method              VARCHAR(MAX),
+        page                VARCHAR(MAX),
+        registration        TIMESTAMP,
+        sessionId           INT,
+        song                VARCHAR(MAX),
+        status              INT,
+        ts                  TIMESTAMP,
+        userAgent           VARCHAR(MAX),
+        userId              INT
     );
 """
 # ?
