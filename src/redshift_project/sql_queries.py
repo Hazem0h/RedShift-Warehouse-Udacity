@@ -7,7 +7,7 @@ TABLE_NAME_SONGPLAY = "songplays"
 TABLE_NAME_USER = "users"
 TABLE_NAME_SONG = "songs"
 TABLE_NAME_ARTIST = "artists"
-TABLE_NAME_TIME = "time"
+TABLE_NAME_TIME = "time_table"
 
 # CONFIG
 config = configparser.ConfigParser()
@@ -27,30 +27,30 @@ time_table_drop = f"DROP TABLE IF EXISTS {TABLE_NAME_TIME}"
 
 staging_events_table_create= f"""
     CREATE TABLE IF NOT EXISTS {STAGING_TABLE_NAME_EVENT}(
-        //event ID
-        eventId             IDENTITY(0,1)
+        -- event ID
+        eventId             INT             PRIMARY KEY     IDENTITY(0,1),
 
-        // user data
+        -- user data
         userId              INT,
         firstName           VARCHAR(50),
         lastName            VARCHAR(50),
         gender              VARCHAR(1),
         level               VARCHAR(50),
 
-        // session data
+        -- session data
         location            VARCHAR(50),
         userAgent           VARCHAR(50),
         auth                VARCHAR(50),
         sessionId           INT,
 
-        // request info
-        ts                  TIMESTAMP       SORTKEY, //because we want the latest timestamp to update the user level.
+        -- request info
+        ts                  TIMESTAMP       SORTKEY, -- because we want the latest timestamp to update the user level.
         itemInSession       INT,
         method              VARCHAR(50),
         status              INT,
         page                VARCHAR(50),
 
-        // song data
+        -- song data
         song                VARCHAR(50),
         artist              VARCHAR(50),
         length              REAL,
@@ -64,14 +64,14 @@ staging_events_table_create= f"""
 
 staging_songs_table_create = f"""
     CREATE TABLE IF NOT EXISTS {STAGING_TABLE_NAME_SONG}(
-        //song data
+        -- song data
         song_id             VARCHAR(50)     PRIMARY KEY,
         num_songs           INT,
         title               VARCHAR(50),
         duration            REAL,
         year                INT,
 
-        // artist data
+        -- artist data
         artist_id           VARCHAR(50),
         artist_latitude     VARCHAR(50), 
         artist_longitude    VARCHAR(50), 
@@ -107,9 +107,8 @@ user_table_create = f"""
         last_name           VARCHAR(50),
         gender              VARCHAR(1),
         level               VARCHAR(50)
-
-        DISTSTYLE AUTO
-    );
+    )
+    DISTSTYLE AUTO;
 """
 
 song_table_create = f"""
@@ -126,14 +125,13 @@ song_table_create = f"""
 
 artist_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_ARTIST}(
-        artist_id           VARCHAR(50)     PRIMARY KEY     DISTKEY,
+        artist_id           VARCHAR(50)     PRIMARY KEY,
         name                VARCHAR(50),
         location            VARCHAR(50),
         latitude            VARCHAR(50),
-        longitude           VARCHAR(50),
-
-        DISTSTYLE AUTO
-    );
+        longitude           VARCHAR(50)
+    )
+    DISTSTYLE AUTO;
 """
 
 time_table_create = f"""
@@ -144,22 +142,23 @@ time_table_create = f"""
         week                INT,
         month               INT,
         year                INT,
-        weekday             INT,
-
-        DISTSTYLE AUTO
-    );
+        weekday             INT
+    )
+    DISTSTYLE AUTO;
 """
 
 # STAGING TABLES
 
 staging_events_copy = f"""
     COPY {STAGING_TABLE_NAME_EVENT} FROM {config["S3"]["LOG_DATA"]}
-    CREDENTIALS {config['IAM_ROLE']['ARN']};
+    CREDENTIALS 'aws_iam_role={config['IAM_ROLE']['ARN']}'
+    REGION 'us-west-2'
+    JSON ;
 """
 
 staging_songs_copy = f"""
     COPY {STAGING_TABLE_NAME_SONG} FROM {config["S3"]["SONG_DATA"]}
-    CREDENTIALS {config['IAM_ROLE']['ARN']};
+    CREDENTIALS 'aws_iam_role={config['IAM_ROLE']['ARN']}';
 """
 
 # FINAL TABLES
@@ -227,7 +226,7 @@ time_table_insert = f"""
 
 # QUERY LISTS
 
-create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
+create_table_queries = [staging_events_table_create, staging_songs_table_create, time_table_create, user_table_create, artist_table_create, song_table_create, songplay_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
 copy_table_queries = [staging_events_copy, staging_songs_copy]
 insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
