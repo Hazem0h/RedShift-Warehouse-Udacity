@@ -34,7 +34,7 @@ staging_events_table_create= f"""
         gender              VARCHAR(MAX),
         itemInSession       INT,
         lastName            VARCHAR(MAX),
-        length              REAL,
+        length              FLOAT,
         level               VARCHAR(MAX),
         location            VARCHAR(MAX),
         method              VARCHAR(MAX),
@@ -55,26 +55,26 @@ staging_events_table_create= f"""
 
 staging_songs_table_create = f"""
     CREATE TABLE IF NOT EXISTS {STAGING_TABLE_NAME_SONG}(
-        song_id             VARCHAR(MAX)     PRIMARY KEY,
-        num_songs           INT,
-        title               VARCHAR(MAX),
-        artist_name         VARCHAR(MAX),
-        artist_latitude     REAL,
-        year                INT,
-        duration            REAL,
         artist_id           VARCHAR(MAX),
-        artist_longitude    REAL, 
-        artist_location     VARCHAR(MAX)
+        artist_latitude     FLOAT, 
+        artist_location     VARCHAR(MAX),
+        artist_longitude    FLOAT,
+        artist_name         VARCHAR(MAX),
+        duration            FLOAT,
+        num_songs           INT,
+        song_id             VARCHAR(MAX),
+        title               VARCHAR(MAX),
+        year                INT
     );
 """
 
 songplay_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_SONGPLAY}(
-        songplay_id         INT             PRIMARY KEY,
+        songplay_id         INT                 IDENTITY(0,1),
         start_time          TIMESTAMP,
         user_id             INT,
         level               VARCHAR(MAX),
-        song_id             VARCHAR(MAX)     DISTKEY,
+        song_id             VARCHAR(MAX)        DISTKEY,
         artist_id           VARCHAR(MAX),
         session_id          INT,
         location            VARCHAR(MAX),
@@ -90,7 +90,7 @@ songplay_table_create = f"""
 
 user_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_USER}(
-        user_id             INT             PRIMARY KEY,
+        user_id             INT                 PRIMARY KEY,
         first_name          VARCHAR(MAX),
         last_name           VARCHAR(MAX),
         gender              VARCHAR(MAX),
@@ -101,11 +101,11 @@ user_table_create = f"""
 
 song_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_SONG}(
-        song_id             VARCHAR(MAX)     PRIMARY KEY     DISTKEY,
+        song_id             VARCHAR(MAX)        PRIMARY KEY     DISTKEY,
         title               VARCHAR(MAX),
         artist_id           VARCHAR(MAX),
         year                INT,
-        duration            REAL,
+        duration            FLOAT,
 
         FOREIGN KEY (artist_id) REFERENCES {TABLE_NAME_ARTIST}(artist_id)
     );
@@ -113,7 +113,7 @@ song_table_create = f"""
 
 artist_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_ARTIST}(
-        artist_id           VARCHAR(MAX)     PRIMARY KEY,
+        artist_id           VARCHAR(MAX)        PRIMARY KEY,
         name                VARCHAR(MAX),
         location            VARCHAR(MAX),
         latitude            VARCHAR(MAX),
@@ -124,7 +124,7 @@ artist_table_create = f"""
 
 time_table_create = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME_TIME}(
-        start_time          TIMESTAMP       PRIMARY KEY,
+        start_time          TIMESTAMP           PRIMARY KEY,
         hour                INT,
         day                 INT,
         week                INT,
@@ -149,7 +149,7 @@ staging_songs_copy = f"""
     COPY {STAGING_TABLE_NAME_SONG} FROM {config["S3"]["SONG_DATA"]}
     CREDENTIALS 'aws_iam_role={config['IAM_ROLE']['ARN']}'
     REGION 'us-west-2'
-    FORMAT AS JSON 'auto';
+    FORMAT AS JSON 'auto'
 """
 
 # FINAL TABLES
@@ -158,34 +158,38 @@ songplay_table_insert = f"""
     INSERT INTO {TABLE_NAME_SONGPLAY} (start_time, user_id, 
                                         level, song_id, artist_id, session_id, location, user_agent)
     SELECT 
-        logs.ts, 
-        logs.userId, 
-        logs.level, 
-        songs.song_id, 
-        songs.artist_id, 
-        logs.sessionId, 
-        logs.location, 
-        logs.userAgent
-    FROM {STAGING_TABLE_NAME_EVENT}     AS      logs
-    JOIN {STAGING_TABLE_NAME_SONG}      AS      songs
-    ON logs.song = songs.title
-    WHERE logs.page = 'NextSong';
+        l.ts, 
+        l.userId, 
+        l.level, 
+        s.song_id, 
+        s.artist_id, 
+        l.sessionId, 
+        l.location, 
+        l.userAgent
+    FROM {STAGING_TABLE_NAME_EVENT}     AS      l
+    JOIN {STAGING_TABLE_NAME_SONG}      AS      s
+    ON l.song = s.title
+    WHERE l.page = 'NextSong';
 """
 
+# Since a user can upgrade or downgrade, the level column needs to be inserted with
+# the most recent timestamp
+# As such, we need to select the most recent record for each user
+# This query will first use the ROW_NUMBER function to assign a unique rank
+# to each row within each userId group, based on the descending order of the timestamp column. 
+# Then, it will select only the rows with a rank of 1, which correspond to the latest entry for each user.
+# I used Udacity's open AI to reach this solution.
 user_table_insert = f"""
     INSERT INTO {TABLE_NAME_USER} (user_id, first_name, last_name, gender, level)
-    SELECT userId, firstName, lastName, gender, level
-    FROM(
-        SELECT 
-            LAST(userId)       AS      userId, 
-            LAST(firstName)    As      firstName,
-            LAST(lastName)     As      lastName, 
-            LAST(gender)       As      gender,
-            LAST(level)        As      level,
-            LAST(ts)           AS      ts
-        FROM {STAGING_TABLE_NAME_EVENT}
-        GROUPBY user_id
-        ORDERBY ts ASC)
+        SELECT  userId, firstName, lastName, gender, level
+        FROM(
+            SELECT 
+                userId, firstName, lastName, gender, level,
+                ROW_NUMBER() OVER (PARTITION BY userId ORDER BY ts DESC) AS rn
+            FROM {STAGING_TABLE_NAME_EVENT}
+            WHERE userId IS NOT NULL
+            ) t
+        WHERE rn = 1;
 """
 
 song_table_insert = f"""
@@ -209,8 +213,6 @@ time_table_insert = f"""
         EXTRACT(week FROM ts), 
         EXTRACT(month FROM ts), 
         EXTRACT(year FROM ts), 
-        EXTRACT(weekday FROM ts), 
-        EXTRACT(year FROM ts), 
         EXTRACT(weekday FROM ts)
     FROM {STAGING_TABLE_NAME_EVENT};
 """
@@ -220,4 +222,4 @@ time_table_insert = f"""
 create_table_queries = [staging_events_table_create, staging_songs_table_create, time_table_create, user_table_create, artist_table_create, song_table_create, songplay_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
 copy_table_queries = [staging_events_copy, staging_songs_copy]
-insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
+insert_table_queries = [user_table_insert, song_table_insert, artist_table_insert, time_table_insert, songplay_table_insert]
