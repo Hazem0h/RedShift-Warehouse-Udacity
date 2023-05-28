@@ -23,8 +23,7 @@
 ### The dimensional model
 #### Fact Table
 * `songplays` - records in event data associated with song plays i.e. records with page NextSong
-
-`songplay_id`, `start_time`, `user_id`, `level`, `song_id`, `artist_id`, `session_id`, `location`, `user_agent`
+    * `songplay_id`, `start_time`, `user_id`, `level`, `song_id`, `artist_id`, `session_id`, `location`, `user_agent`
 #### Dimension Tables
 * `users` - users in the app
     * `user_id`, `first_name`, `last_name`, `gender`, `level`
@@ -39,7 +38,7 @@
 * You'll need poetry to install the project and its dependencies
 * Once you've installed the dependencies, in the command window, run 
 ```
-poetry python main.py [--debug]
+poetry python src/main.py [--debug]
 ```
 The script accepts a CLI flag `--debug` which sets the logger to display logs of `debug` severity or higher. Otherwise the level will be `info`
 
